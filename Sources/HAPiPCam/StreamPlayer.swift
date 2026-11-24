@@ -247,7 +247,7 @@ struct PlaybackVolumeControl: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Button(action: player.toggleMute) {
+            Button(action: { player.toggleMute() }) {
                 Image(systemName: player.isSilent ? "speaker.slash.fill" : "speaker.wave.2.fill")
                     .frame(width: 24, height: 24)
             }
@@ -255,7 +255,14 @@ struct PlaybackVolumeControl: View {
             .accessibilityLabel(player.isSilent ? "Unmute" : "Mute")
             .help(player.isSilent ? "Unmute" : "Mute")
 
-            Slider(value: Binding(get: { player.volume }, set: player.setVolume), in: 0...4, step: 0.05) {
+            Slider(
+                value: Binding(
+                    get: { player.volume },
+                    set: { player.setVolume($0) }
+                ),
+                in: 0...4,
+                step: 0.05
+            ) {
                 Text("Volume")
             }
             .tint(.white)
