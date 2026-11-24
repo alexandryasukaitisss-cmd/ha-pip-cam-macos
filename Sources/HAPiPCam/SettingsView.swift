@@ -25,73 +25,93 @@ struct SettingsView: View {
                 .font(.title2.weight(.semibold))
 
             Form {
-                Section("Live Stream (go2rtc / HLS)") {
-                    TextField("Camera Name", text: $draft.cameraName)
-                        .textFieldStyle(.roundedBorder)
-                    TextField("HLS Stream URL", text: $draft.streamURL)
-                        .textFieldStyle(.roundedBorder)
-                    Text("Example: http://127.0.0.1:1984/api/stream.m3u8?src=front_door")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Home Assistant (Optional)") {
-                    TextField("Base URL", text: $draft.haBaseURL, prompt: Text("http://homeassistant.local:8123"))
-                        .textFieldStyle(.roundedBorder)
-                    HStack(spacing: 6) {
-                        SecureField(
-                            hasKeychainToken ? "Token stored in Keychain (leave blank to keep)" : "Long-Lived Access Token",
-                            text: $tokenInput
-                        )
-                        .textFieldStyle(.roundedBorder)
-                        if hasKeychainToken {
-                            Button("Clear") {
-                                HomeAssistantToken.deleteKeychain()
-                                hasKeychainToken = false
-                                tokenInput = ""
-                            }
-                        }
-                    }
-                    TextField("Fallback Token File", text: $draft.tokenPath)
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Camera Entity", text: $draft.cameraEntity, prompt: Text("camera.front_door"))
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Temperature Sensor", text: $draft.temperatureEntity, prompt: Text("sensor.room_temperature"))
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Humidity Sensor", text: $draft.humidityEntity, prompt: Text("sensor.room_humidity"))
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                Section("Window & Audio") {
-                    Toggle("Show PiP window on launch", isOn: $draft.showOnLaunch)
-                    Toggle("Float above all windows", isOn: $draft.floatOnTop)
-                    Toggle("Visible on all Spaces (including full-screen)", isOn: $draft.allSpaces)
-                    Toggle("Keep audio playing when window is hidden", isOn: $backgroundAudio)
-                }
-
-                Section("Motion & Menu Bar") {
-                    Toggle("Send macOS notification on motion", isOn: $draft.notifyOnMotion)
-                    Toggle("Auto-open PiP panel on motion", isOn: $draft.showOnMotion)
-                    Toggle("Show temperature & humidity in menu bar", isOn: $draft.climateInMenuBar)
-                }
+                streamSection
+                homeAssistantSection
+                windowSection
+                motionSection
             }
             .formStyle(.grouped)
 
-            HStack {
-                Text("Global shortcut: ⌃⌥C")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Cancel", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-                Button("Save") {
-                    onSave(draft, tokenInput)
-                }
-                .keyboardShortcut(.defaultAction)
-            }
+            footerButtons
         }
         .padding(20)
         .frame(width: 600)
+    }
+
+    private var streamSection: some View {
+        Section("Live Stream (go2rtc / HLS)") {
+            TextField("Camera Name", text: $draft.cameraName)
+                .textFieldStyle(.roundedBorder)
+            TextField("HLS Stream URL", text: $draft.streamURL)
+                .textFieldStyle(.roundedBorder)
+            Text("Example: http://127.0.0.1:1984/api/stream.m3u8?src=front_door")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var homeAssistantSection: some View {
+        Section("Home Assistant (Optional)") {
+            TextField("Base URL", text: $draft.haBaseURL)
+                .textFieldStyle(.roundedBorder)
+            HStack(spacing: 6) {
+                SecureField(tokenPlaceholder, text: $tokenInput)
+                    .textFieldStyle(.roundedBorder)
+                if hasKeychainToken {
+                    Button("Clear") {
+                        HomeAssistantToken.deleteKeychain()
+                        hasKeychainToken = false
+                        tokenInput = ""
+                    }
+                }
+            }
+            TextField("Fallback Token File", text: $draft.tokenPath)
+                .textFieldStyle(.roundedBorder)
+            TextField("Camera Entity", text: $draft.cameraEntity)
+                .textFieldStyle(.roundedBorder)
+            TextField("Temperature Sensor", text: $draft.temperatureEntity)
+                .textFieldStyle(.roundedBorder)
+            TextField("Humidity Sensor", text: $draft.humidityEntity)
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    private var windowSection: some View {
+        Section("Window & Audio") {
+            Toggle("Show PiP window on launch", isOn: $draft.showOnLaunch)
+            Toggle("Float above all windows", isOn: $draft.floatOnTop)
+            Toggle("Visible on all Spaces (including full-screen)", isOn: $draft.allSpaces)
+            Toggle("Keep audio playing when window is hidden", isOn: $backgroundAudio)
+        }
+    }
+
+    private var motionSection: some View {
+        Section("Motion & Menu Bar") {
+            Toggle("Send macOS notification on motion", isOn: $draft.notifyOnMotion)
+            Toggle("Auto-open PiP panel on motion", isOn: $draft.showOnMotion)
+            Toggle("Show temperature & humidity in menu bar", isOn: $draft.climateInMenuBar)
+        }
+    }
+
+    private var footerButtons: some View {
+        HStack {
+            Text("Global shortcut: ⌃⌥C")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Cancel", action: onCancel)
+                .keyboardShortcut(.cancelAction)
+            Button("Save") {
+                onSave(draft, tokenInput)
+            }
+            .keyboardShortcut(.defaultAction)
+        }
+    }
+
+    private var tokenPlaceholder: String {
+        hasKeychainToken
+            ? "Token stored in Keychain (leave blank to keep)"
+            : "Long-Lived Access Token"
     }
 }
 
