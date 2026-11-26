@@ -17,6 +17,11 @@ enum HAPiPCamApp {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = CameraViewModel()
     private let player = StreamPlayer()
+    private let updater = GitHubCommitUpdater(
+        repository: "alexandryasukaitisss-cmd/ha-pip-cam-macos",
+        bundleName: "HAPiPCam.app",
+        executableName: "HAPiPCam"
+    )
     private var panelController: CameraPanelController?
     private var settingsController: SettingsWindowController?
     private var clipController: ClipWindowController?
@@ -190,6 +195,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.target = self
         menu.addItem(settings)
 
+        if let candidate = updater.availableUpdate {
+            let updateItem = NSMenuItem(
+                title: "Update to \(candidate.shortSHA)…",
+                action: #selector(installUpdateAction),
+                keyEquivalent: ""
+            )
+            updateItem.target = self
+            menu.addItem(updateItem)
+        } else {
+            let checkItem = NSMenuItem(
+                title: "Check for Updates…",
+                action: #selector(checkUpdatesAction),
+                keyEquivalent: ""
+            )
+            checkItem.target = self
+            menu.addItem(checkItem)
+        }
+
         menu.addItem(.separator())
 
         let quit = NSMenuItem(
@@ -212,6 +235,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showLastClipAction() { showLastClip() }
     @objc private func showSettingsAction() { showSettings() }
+    @objc private func checkUpdatesAction() {
+        updater.checkForUpdates(manual: true)
+        showSettings()
+    }
+    @objc private func installUpdateAction() {
+        updater.installAvailableUpdate()
+    }
     @objc private func quitAction() { NSApp.terminate(nil) }
 
     private func togglePanel() {
@@ -220,7 +250,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showSettings() {
         settingsController?.close()
-        let controller = SettingsWindowController(settings: model.settings) { [weak self] newSettings, newToken in
+        let controller = SettingsWindowController(settings: model.settings, updater: updater) { [weak self] newSettings, newToken in
             guard let self else { return }
             if !newToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 HomeAssistantToken.saveKeychain(newToken)

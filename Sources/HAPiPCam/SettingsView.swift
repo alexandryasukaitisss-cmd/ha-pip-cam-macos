@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 struct SettingsView: View {
+    @ObservedObject var updater: GitHubCommitUpdater
     @State private var draft: AppSettings
     @State private var tokenInput = ""
     @State private var hasKeychainToken = HomeAssistantToken.hasKeychainToken()
@@ -11,9 +12,11 @@ struct SettingsView: View {
 
     init(
         draft: AppSettings,
+        updater: GitHubCommitUpdater,
         onSave: @escaping (AppSettings, String) -> Void,
         onCancel: @escaping () -> Void
     ) {
+        self.updater = updater
         _draft = State(initialValue: draft)
         self.onSave = onSave
         self.onCancel = onCancel
@@ -29,6 +32,7 @@ struct SettingsView: View {
                 homeAssistantSection
                 windowSection
                 motionSection
+                updatesSection
             }
             .formStyle(.grouped)
 
@@ -93,6 +97,12 @@ struct SettingsView: View {
         }
     }
 
+    private var updatesSection: some View {
+        Section("Updates") {
+            CommitUpdateRowView(updater: updater)
+        }
+    }
+
     private var footerButtons: some View {
         HStack {
             Text("Global shortcut: ⌃⌥C")
@@ -119,10 +129,10 @@ struct SettingsView: View {
 final class SettingsWindowController: NSWindowController {
     private let onSave: (AppSettings, String) -> Void
 
-    init(settings: AppSettings, onSave: @escaping (AppSettings, String) -> Void) {
+    init(settings: AppSettings, updater: GitHubCommitUpdater, onSave: @escaping (AppSettings, String) -> Void) {
         self.onSave = onSave
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 580),
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 640),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -134,6 +144,7 @@ final class SettingsWindowController: NSWindowController {
         window.contentViewController = NSHostingController(
             rootView: SettingsView(
                 draft: settings,
+                updater: updater,
                 onSave: { [weak self] newSettings, newToken in
                     self?.onSave(newSettings, newToken)
                     self?.close()
