@@ -31,7 +31,7 @@ brew install --cask alexandryasukaitisss-cmd/tap/ha-pip-cam
 
 ### Прямое скачивание
 
-Скачайте `HAPiPCam-0.2.0-macos-arm64.zip` из [GitHub Releases](https://github.com/alexandryasukaitisss-cmd/ha-pip-cam-macos/releases), распакуйте и перенесите `HAPiPCam.app` в `/Applications`.
+Скачайте `HAPiPCam-0.2.1-macos-arm64.zip` из [GitHub Releases](https://github.com/alexandryasukaitisss-cmd/ha-pip-cam-macos/releases), распакуйте и перенесите `HAPiPCam.app` в `/Applications`.
 
 > [!NOTE]
 > **Первый запуск на macOS (без платной нотаризации Apple):** Готовые сборки подписаны ad-hoc, поэтому при первом запуске Gatekeeper покажет предупреждение *«Apple не удалось подтвердить, что файл «HAPiPCam» не содержит вредоносного ПО»*. Чтобы открыть один раз:

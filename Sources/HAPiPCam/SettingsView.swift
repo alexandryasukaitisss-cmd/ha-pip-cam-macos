@@ -23,10 +23,7 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("HA PiP Cam Settings")
-                .font(.title2.weight(.semibold))
-
+        VStack(alignment: .leading, spacing: 12) {
             Form {
                 streamSection
                 homeAssistantSection
@@ -37,46 +34,69 @@ struct SettingsView: View {
             .formStyle(.grouped)
 
             footerButtons
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
         }
-        .padding(20)
-        .frame(width: 600)
+        .frame(width: 600, height: 640)
     }
 
     private var streamSection: some View {
-        Section("Live Stream (go2rtc / HLS)") {
-            TextField("Camera Name", text: $draft.cameraName)
-                .textFieldStyle(.roundedBorder)
-            TextField("HLS Stream URL", text: $draft.streamURL)
-                .textFieldStyle(.roundedBorder)
+        Section {
+            LabeledContent("Camera Name") {
+                TextField("Front Door", text: $draft.cameraName)
+                    .textFieldStyle(.roundedBorder)
+            }
+            LabeledContent("HLS Stream URL") {
+                TextField("http://127.0.0.1:1984/api/stream.m3u8?src=front_door", text: $draft.streamURL)
+                    .textFieldStyle(.roundedBorder)
+                    .monospacedDigit()
+            }
+        } header: {
+            Text("Live Stream (go2rtc / HLS)")
+        } footer: {
             Text("Example: http://127.0.0.1:1984/api/stream.m3u8?src=front_door")
-                .font(.caption)
+                .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
     }
 
     private var homeAssistantSection: some View {
         Section("Home Assistant (Optional)") {
-            TextField("Base URL", text: $draft.haBaseURL)
-                .textFieldStyle(.roundedBorder)
-            HStack(spacing: 6) {
-                SecureField(tokenPlaceholder, text: $tokenInput)
+            LabeledContent("Base URL") {
+                TextField("http://homeassistant.local:8123", text: $draft.haBaseURL)
                     .textFieldStyle(.roundedBorder)
-                if hasKeychainToken {
-                    Button("Clear") {
-                        HomeAssistantToken.deleteKeychain()
-                        hasKeychainToken = false
-                        tokenInput = ""
+                    .monospacedDigit()
+            }
+            LabeledContent("Access Token") {
+                HStack(spacing: 6) {
+                    SecureField(tokenPlaceholder, text: $tokenInput)
+                        .textFieldStyle(.roundedBorder)
+                    if hasKeychainToken {
+                        Button("Clear") {
+                            HomeAssistantToken.deleteKeychain()
+                            hasKeychainToken = false
+                            tokenInput = ""
+                        }
                     }
                 }
             }
-            TextField("Fallback Token File", text: $draft.tokenPath)
-                .textFieldStyle(.roundedBorder)
-            TextField("Camera Entity", text: $draft.cameraEntity)
-                .textFieldStyle(.roundedBorder)
-            TextField("Temperature Sensor", text: $draft.temperatureEntity)
-                .textFieldStyle(.roundedBorder)
-            TextField("Humidity Sensor", text: $draft.humidityEntity)
-                .textFieldStyle(.roundedBorder)
+            LabeledContent("Fallback Token File") {
+                TextField("~/.config/ha-pip-cam/token", text: $draft.tokenPath)
+                    .textFieldStyle(.roundedBorder)
+                    .monospacedDigit()
+            }
+            LabeledContent("Camera Entity") {
+                TextField("camera.front_door", text: $draft.cameraEntity)
+                    .textFieldStyle(.roundedBorder)
+            }
+            LabeledContent("Temperature Sensor") {
+                TextField("sensor.room_temperature", text: $draft.temperatureEntity)
+                    .textFieldStyle(.roundedBorder)
+            }
+            LabeledContent("Humidity Sensor") {
+                TextField("sensor.room_humidity", text: $draft.humidityEntity)
+                    .textFieldStyle(.roundedBorder)
+            }
         }
     }
 
@@ -106,7 +126,7 @@ struct SettingsView: View {
     private var footerButtons: some View {
         HStack {
             Text("Global shortcut: ⌃⌥C")
-                .font(.caption)
+                .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
             Spacer()
             Button("Cancel", action: onCancel)

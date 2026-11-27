@@ -22,19 +22,22 @@ struct CameraPanelView: View {
 
     private var topBar: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
-                .shadow(color: statusColor.opacity(0.8), radius: 4)
+            Text(model.settings.displayTitle)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .lineLimit(1)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(model.settings.displayTitle)
-                    .font(.headline)
-                    .foregroundStyle(.white)
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 7, height: 7)
                 Text(statusLabel)
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .font(.caption2.weight(.medium).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.85))
             }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
 
             Spacer(minLength: 8)
 
@@ -93,7 +96,7 @@ struct CameraPanelView: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(.ultraThinMaterial, in: Capsule())
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .foregroundStyle(.white)
             .disabled(model.reading.streamAddress == nil)
             .opacity(model.reading.streamAddress == nil ? 0.45 : 1)
@@ -144,7 +147,7 @@ struct CameraPanelView: View {
         }
         .foregroundStyle(.white)
         .padding(20)
-        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 14))
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var statusColor: Color {
@@ -177,7 +180,7 @@ struct CameraPanelView: View {
             .foregroundStyle(color)
             .padding(.horizontal, 7)
             .padding(.vertical, 4)
-            .background(.ultraThinMaterial, in: Capsule())
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     private func iconButton(
@@ -188,8 +191,8 @@ struct CameraPanelView: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 13, weight: .semibold))
-                .frame(width: 32, height: 32)
-                .background(.ultraThinMaterial, in: Circle())
+                .frame(width: 30, height: 30)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
         .buttonStyle(.plain)
         .foregroundStyle(.white)
