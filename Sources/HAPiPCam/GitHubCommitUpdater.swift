@@ -313,7 +313,7 @@ public final class GitHubCommitUpdater: ObservableObject {
 
             state = .installing("Relaunching…")
             try launchDetachedSwap(stagingDir: stagingDir, extractedApp: extractedApp, targetApp: targetApp)
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 1.5) {
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 5) {
                 Darwin.exit(0)
             }
             let mainLoop = CFRunLoopGetMain()
@@ -336,8 +336,15 @@ public final class GitHubCommitUpdater: ObservableObject {
         proc.standardOutput = pipe
         proc.standardError = pipe
         try proc.run()
+        // Drain while the child runs and cap the wait so a wedged helper cannot freeze the UI.
+        let watchdog = DispatchWorkItem {
+            if proc.isRunning { proc.terminate() }
+        }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 180, execute: watchdog)
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
         proc.waitUntilExit()
-        let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        watchdog.cancel()
+        let out = String(data: data, encoding: .utf8) ?? ""
         guard proc.terminationStatus == 0 else {
             throw NSError(domain: "GitHubCommitUpdater", code: Int(proc.terminationStatus), userInfo: [NSLocalizedDescriptionKey: out.trimmingCharacters(in: .whitespacesAndNewlines)])
         }
@@ -375,19 +382,28 @@ public final class GitHubCommitUpdater: ObservableObject {
           sleep 0.2
         fi
 
-        rm -rf "$BACKUP_APP"
+        rm -rf "$BACKUP_APP" || exit 1
         if [ -d "$TARGET_APP" ]; then
           mv "$TARGET_APP" "$BACKUP_APP" || exit 1
         fi
 
         if /usr/bin/ditto "$NEW_APP" "$TARGET_APP"; then
           /usr/bin/xattr -cr "$TARGET_APP" >/dev/null 2>&1 || /usr/bin/xattr -dr com.apple.quarantine "$TARGET_APP" >/dev/null 2>&1 || true
-          rm -rf "$BACKUP_APP"
-          /usr/bin/open -n "$TARGET_APP" || /usr/bin/open "$TARGET_APP"
-          rm -rf "$STAGING_DIR"
+          if /usr/bin/open -n "$TARGET_APP" || /usr/bin/open "$TARGET_APP"; then
+            rm -rf "$BACKUP_APP"
+            rm -rf "$STAGING_DIR"
+          else
+            rm -rf "$TARGET_APP" || exit 1
+            if [ -d "$BACKUP_APP" ]; then
+              mv "$BACKUP_APP" "$TARGET_APP" && /usr/bin/open "$TARGET_APP"
+            fi
+            exit 1
+          fi
         else
+          # ditto can leave a partial bundle behind; moving the backup onto that path would nest it.
+          rm -rf "$TARGET_APP" || exit 1
           if [ -d "$BACKUP_APP" ]; then
-            mv "$BACKUP_APP" "$TARGET_APP"
+            mv "$BACKUP_APP" "$TARGET_APP" && /usr/bin/open "$TARGET_APP"
           fi
           exit 1
         fi
