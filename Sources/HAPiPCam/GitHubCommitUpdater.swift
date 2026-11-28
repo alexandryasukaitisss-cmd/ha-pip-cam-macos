@@ -356,13 +356,44 @@ public final class GitHubCommitUpdater: ObservableObject {
         let scriptURL = stagingDir.appendingPathComponent("apply_update.sh")
         let backupPath = targetApp.path + ".previous-\(pid)"
 
-        let script = """
+        let script = Self.applyUpdateScript(
+            oldPID: pid,
+            newApp: extractedApp.path,
+            targetApp: targetApp.path,
+            backupApp: backupPath,
+            stagingDir: stagingDir.path
+        )
+        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: scriptURL.path)
+
+        let launcher = Process()
+        launcher.executableURL = URL(fileURLWithPath: "/bin/sh")
+        launcher.arguments = [scriptURL.path]
+        launcher.standardInput = FileHandle.nullDevice
+        launcher.standardOutput = FileHandle.nullDevice
+        launcher.standardError = FileHandle.nullDevice
+        try launcher.run()
+    }
+
+
+    /// The swap script is pure shell, so the rollback branches can be exercised from tests.
+    /// `UPDATE_OPEN_BIN` / `UPDATE_DITTO_BIN` exist only for failure injection.
+    nonisolated static func applyUpdateScript(
+        oldPID: Int32,
+        newApp: String,
+        targetApp: String,
+        backupApp: String,
+        stagingDir: String
+    ) -> String {
+        """
         #!/bin/sh
-        OLD_PID="\(pid)"
-        NEW_APP=\(Self.shellQuote(extractedApp.path))
-        TARGET_APP=\(Self.shellQuote(targetApp.path))
-        BACKUP_APP=\(Self.shellQuote(backupPath))
-        STAGING_DIR=\(Self.shellQuote(stagingDir.path))
+        OLD_PID="\(oldPID)"
+        NEW_APP=\(shellQuote(newApp))
+        TARGET_APP=\(shellQuote(targetApp))
+        BACKUP_APP=\(shellQuote(backupApp))
+        STAGING_DIR=\(shellQuote(stagingDir))
+        OPEN_BIN="${UPDATE_OPEN_BIN:-/usr/bin/open}"
+        DITTO_BIN="${UPDATE_DITTO_BIN:-/usr/bin/ditto}"
 
         i=0
         while kill -0 "$OLD_PID" 2>/dev/null && [ "$i" -lt 40 ]; do
@@ -387,15 +418,15 @@ public final class GitHubCommitUpdater: ObservableObject {
           mv "$TARGET_APP" "$BACKUP_APP" || exit 1
         fi
 
-        if /usr/bin/ditto "$NEW_APP" "$TARGET_APP"; then
+        if "$DITTO_BIN" "$NEW_APP" "$TARGET_APP"; then
           /usr/bin/xattr -cr "$TARGET_APP" >/dev/null 2>&1 || /usr/bin/xattr -dr com.apple.quarantine "$TARGET_APP" >/dev/null 2>&1 || true
-          if /usr/bin/open -n "$TARGET_APP" || /usr/bin/open "$TARGET_APP"; then
+          if "$OPEN_BIN" -n "$TARGET_APP" || "$OPEN_BIN" "$TARGET_APP"; then
             rm -rf "$BACKUP_APP"
             rm -rf "$STAGING_DIR"
           else
             rm -rf "$TARGET_APP" || exit 1
             if [ -d "$BACKUP_APP" ]; then
-              mv "$BACKUP_APP" "$TARGET_APP" && /usr/bin/open "$TARGET_APP"
+              mv "$BACKUP_APP" "$TARGET_APP" && "$OPEN_BIN" "$TARGET_APP"
             fi
             exit 1
           fi
@@ -403,24 +434,14 @@ public final class GitHubCommitUpdater: ObservableObject {
           # ditto can leave a partial bundle behind; moving the backup onto that path would nest it.
           rm -rf "$TARGET_APP" || exit 1
           if [ -d "$BACKUP_APP" ]; then
-            mv "$BACKUP_APP" "$TARGET_APP" && /usr/bin/open "$TARGET_APP"
+            mv "$BACKUP_APP" "$TARGET_APP" && "$OPEN_BIN" "$TARGET_APP"
           fi
           exit 1
         fi
         """
-        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: scriptURL.path)
-
-        let launcher = Process()
-        launcher.executableURL = URL(fileURLWithPath: "/bin/sh")
-        launcher.arguments = [scriptURL.path]
-        launcher.standardInput = FileHandle.nullDevice
-        launcher.standardOutput = FileHandle.nullDevice
-        launcher.standardError = FileHandle.nullDevice
-        try launcher.run()
     }
 
-    private static func shellQuote(_ value: String) -> String {
+    nonisolated private static func shellQuote(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
