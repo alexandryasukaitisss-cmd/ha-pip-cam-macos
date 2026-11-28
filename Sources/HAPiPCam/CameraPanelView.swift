@@ -26,6 +26,7 @@ struct CameraPanelView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
                 .lineLimit(1)
+                .help(model.settings.displayTitle)
 
             HStack(spacing: 5) {
                 Circle()
@@ -85,7 +86,7 @@ struct CameraPanelView: View {
             if let shortMotionTime {
                 Text(shortMotionTime)
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.78))
                     .lineLimit(1)
             }
 
@@ -98,6 +99,7 @@ struct CameraPanelView: View {
             .padding(.vertical, 6)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .foregroundStyle(.white)
+            .frame(minHeight: 28)
             .disabled(model.reading.streamAddress == nil)
             .opacity(model.reading.streamAddress == nil ? 0.45 : 1)
         }
@@ -140,7 +142,7 @@ struct CameraPanelView: View {
                     Text("No video frames after 15s. Verify that go2rtc (or your HLS server) is running and allowed Local Network access in macOS Privacy & Security.")
                         .font(.caption2)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.white.opacity(0.78))
                         .frame(maxWidth: 320)
                 }
             }
